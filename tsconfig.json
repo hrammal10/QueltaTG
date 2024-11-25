@@ -1,0 +1,23 @@
+{
+	"ts-node": {
+		"files": true
+	},
+	"compilerOptions": {
+		"outDir": "./dist",
+		"target": "ES2022",
+		"module": "CommonJS",
+		"downlevelIteration": true,
+		"noImplicitReturns": true,
+		"noFallthroughCasesInSwitch": true,
+		"forceConsistentCasingInFileNames": true,
+		"noEmitOnError": true,
+		"strict": true,
+		"esModuleInterop": true,
+		"moduleResolution": "node",
+		"resolveJsonModule": true,
+		"useUnknownInCatchVariables": false,
+		"sourceMap": true,
+		"skipLibCheck": true,
+	},
+	"include": ["index.ts"]
+	}

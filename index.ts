@@ -3,9 +3,9 @@ import { Api, Bot, Context, InlineKeyboard } from "grammy";
 const bot = new Bot("7947432199:AAF-lrKBtcTxD3GuXKhjUDFUAAtoOXtYVGg");
 
 // Maps for all topics
-let newTopics = new Map<string, string>();
-let closedTopics = new Map<string, string>();
-let onHoldTopics = new Map<string, string>();
+let newTopics = new Map<string | undefined, string>();
+let closedTopics = new Map<string | undefined, string>();
+let pendingTopics = new Map<string | undefined, string>();
 const deleteKeyboard = new InlineKeyboard()
     .text("Yes", "confirmDelete")
     .text("No", "disregardDelete");
@@ -32,9 +32,9 @@ bot.on("callback_query:data", async (ctx) => {
 
 // new topic command
 bot.command("create", async (ctx) => {
-    const commandText = ctx.message?.text;
-    if (commandText) {
-        const commandParts = commandText.split(' ').slice(1).join(' ');
+    const createText = ctx.message?.text;
+    if (createText) {
+        const commandParts = createText.split(' ').slice(1).join(' ');
         const topicInfo = commandParts.split(' - ');
         // check topic name and creator name is found
         if (topicInfo.length < 2) {
@@ -49,9 +49,9 @@ bot.command("create", async (ctx) => {
             await ctx.reply("Topic already exists.");
             return;
         } else {
-             await ctx.api.createForumTopic(ctx.chat.id, topicName, {
+            await ctx.api.createForumTopic(ctx.chat.id, topicName, {
                 icon_custom_emoji_id: "🔥",
-            });         
+            });
             newTopics.set(topicName, creatorName);
             const confirmationMessage = ("Done. The topic is created.");
             await ctx.reply(confirmationMessage, {
@@ -87,7 +87,30 @@ bot.command("existingtopics", async (ctx) => {
 
 // commnad to close topic
 bot.command("close", async (ctx) => {
-    await ctx.api.editForumTopic
+    const closeText = ctx.message?.text;
+
+    if (closeText) {
+        const commandParts = closeText.split(' ').slice(1).join(' ');
+        const closerName = commandParts[0].trim();
+        const chatId = ctx.chat.id;
+        const topicId = ctx.message?.message_thread_id;
+        const topicName = ctx.message?.text?.toLowerCase().trim();
+
+        if (newTopics.has(topicName)) {
+            const closedTopicName = `[CLOSED] ${topicName}`;
+            try {
+                await ctx.api.editForumTopic(chatId, topicId, closedTopicName);
+                closedTopics.set(closedTopicName, closerName);
+                newTopics.delete(topicName);
+                await ctx.reply(`Topic has been officially closed by ${closerName}.`);
+            } catch (error) {
+                console.error("Failed to close topic:", error);
+                await ctx.reply("Failed to update the token name. Contact Admin.");
+            }
+        } else {
+            await ctx.reply("Topic not found in the list of existing topics.");
+        }
+    }
 })
 
 bot.start();

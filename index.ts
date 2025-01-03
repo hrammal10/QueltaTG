@@ -4,6 +4,7 @@ import {
     Context, 
     InlineKeyboard 
 } from "grammy";
+import dotenv from 'dotenv';
 
 interface TopicInfo {
     name: string;
@@ -11,7 +12,10 @@ interface TopicInfo {
     creator: string;
 }
 
-const bot = new Bot("7947432199:AAF-lrKBtcTxD3GuXKhjUDFUAAtoOXtYVGg");
+dotenv.config();
+
+const bot = new Bot(process.env.BOT_TOKEN!);
+const archive_group_id = 2388831719;
 
 let newTopics = new Map<number, TopicInfo>();
 let closedTopics = new Map<number, TopicInfo>();
@@ -36,7 +40,7 @@ function findTopicLocation(topicId: number): {
 
 async function executeTopicOperation(
     ctx: Context,
-    operation: 'create' | 'close' | 'hold' | 'open',
+    operation: 'create' | 'close' | 'hold' | 'open' | 'archive',
     handler: () => Promise<void>
 ): Promise<void> {
     const topicId = operation === 'create' ? undefined : ctx.message?.message_thread_id;
@@ -134,10 +138,12 @@ bot.command("create", async (ctx) => {
                 topicNameIndex.set(normalizedName, topicId);
             });
 
-            await ctx.reply("Done. The topic is created.", {
-                message_thread_id: ctx.message?.message_thread_id,
-                reply_parameters: { message_id: ctx.msg.message_id }
-            });
+            await ctx.api.sendMessage(
+                ctx.chat.id,
+                `This topic was created by ${creatorName}`,
+                { message_thread_id: topicId }
+            ); 
+
         } catch (error) {
             await ctx.reply("Encountered an error while creating topic.", {
                 message_thread_id: ctx.message?.message_thread_id
@@ -316,7 +322,7 @@ bot.command("open", async (ctx) => {
                 return;
 
             case 'closed':
-                // Remove [CLOSED] prefix to get original name
+                // remove [CLOSED] prefix 
                 const originalName = topicInfo.name.replace('[CLOSED] ', '');
                 
                 try {
@@ -327,7 +333,7 @@ bot.command("open", async (ctx) => {
                             { name: originalName }
                         );
 
-                        // Move from closedTopics to newTopics
+                        // change from closedTopics to newTopics
                         newTopics.set(topicId, {
                             ...topicInfo,
                             name: originalName
@@ -354,6 +360,7 @@ bot.command("open", async (ctx) => {
         }
     }
 });
+
 
 bot.command("delete", async (ctx) => {
     const threadId = ctx.message?.message_thread_id;
@@ -398,7 +405,6 @@ bot.on("callback_query:data", async (ctx) => {
         });
     }
 });
-
 
 bot.command("existingtopics", async (ctx) => {
     const topics = Array.from(newTopics.values());

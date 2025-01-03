@@ -4,6 +4,7 @@
 	"description": "Hassouna's Quelta",
 	"main": "Quelta.js",
 	"dependencies": {
+		"dotenv": "^16.4.7",
 		"grammy": "^1.33.0",
 		"node-schedule": "^2.1.1",
 		"npm": "^10.9.0",

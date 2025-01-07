@@ -95,6 +95,10 @@ const deleteKeyboard = new InlineKeyboard()
     .text("Yes", "confirmDelete")
     .text("No", "disregardDelete");
 
+bot.command("start", async (ctx) => {
+    
+})
+
 bot.command("create", async (ctx) => {
     const createText = ctx.message?.text;
     if (createText) {
@@ -360,7 +364,6 @@ bot.command("open", async (ctx) => {
         }
     }
 });
-
 
 bot.command("delete", async (ctx) => {
     const threadId = ctx.message?.message_thread_id;

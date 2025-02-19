@@ -1,29 +1,33 @@
 import { 
-    Api, 
     Bot, 
     Context, 
     InlineKeyboard 
 } from "grammy";
-import { TelegramClient } from "telegram";
-import { StringSession } from "telegram/sessions";
 import dotenv from 'dotenv';
-
-interface TopicInfo {
-    name: string;
-    id: number;
-    creator: string;
-}
-
+import {
+    updateTopicState,
+    cleanTopicName
+} from './helpers';
+import { TopicInfo, 
+    TopicState,
+    TopicError 
+} from './types'; 
+import { userClient } from './userClient';
+import { Api } from 'telegram';
 dotenv.config();
 
+const bigInt = require('big-integer');
 const bot = new Bot(process.env.BOT_TOKEN!);
-const archive_group_id = 2388831719;
-const userClient = new TelegramClient(
-    new StringSession(""),
-    parseInt(process.env.API_ID!),
-    process.env.API_HASH!,
-    { connectionRetries: 5 }
-);
+
+bot.catch((err) => {
+    const { message, ctx } = err;
+    if (message?.includes("message thread not found")) {
+        // Topic was deleted, ignore the error
+        console.log("Attempted to interact with deleted topic, ignoring.");
+        return;
+    }
+    console.error("Bot error:", err);
+});
 
 async function executeTopicOperation(
     ctx: Context,
@@ -55,18 +59,18 @@ async function executeTopicOperation(
         throw error;
     }
 }
-
-function getCommanderName(commandText: string): string {
-    const commandParts = commandText.split(' ').slice(1);
-    return commandParts[0]?.trim() || 'Unknown';
-}
-
 const deleteKeyboard = new InlineKeyboard()
     .text("Yes", "confirmDelete")
     .text("No", "disregardDelete");
 
 bot.command("start", async (ctx) => {
-    
+    await ctx.reply(`
+        This is Quelta, the best moderator bot soon to be (literally). Main functionalities for now are:
+        /start
+        /create (Which creates a topic)
+        /delete 
+        /state (One of Open, close, pending refund, or pending fix)
+        /archive (Secret command for Admin and Dev)`)
 })
 
 bot.command("create", async (ctx) => {
@@ -85,7 +89,6 @@ bot.command("create", async (ctx) => {
 
         const creatorName = topicInfo[topicInfo.length - 1].trim();
         const topicName = topicInfo.slice(0, topicInfo.length - 1).join(' - ').trim();
-        const normalizedName = topicName.toLowerCase();
 
         try {
             const createdTopic = await ctx.api.createForumTopic(
@@ -95,8 +98,8 @@ bot.command("create", async (ctx) => {
             });
 
             const topicId = createdTopic.message_thread_id;
-            
-            await executeTopicOperation(ctx, 'create', async () => {
+
+            await executeTopicOperation(ctx, 'create', async () => {    
             });
 
             await ctx.api.sendMessage(
@@ -152,8 +155,9 @@ bot.on("callback_query:data", async (ctx) => {
 });
 
 bot.command("state", async (ctx) => {
-    const stateText = ctx.message?.text;
     const topicId = ctx.message?.message_thread_id;
+    const chatId = ctx.chat?.id;
+    const stateText = ctx.message?.text.slice(7).trim().toUpperCase();
 
     if (!stateText || !topicId) {
         await ctx.reply("Please provide a state and use this command within a topic.", {
@@ -161,20 +165,26 @@ bot.command("state", async (ctx) => {
         });
         return;
     }
-
-    const newState = stateText.split(' ')[1]?.trim().toUpperCase();
-
-    if (!newState) {
-        await ctx.reply("Please provide a state (e.g., /state closed)", {
+    const validStates = ['OPEN', 'CLOSE', 'PENDING REFUND', 'PENDING FIX'] as const;
+    if (!validStates.includes(stateText as any)) {
+        await ctx.reply(`Invalid state. Please use one of: ${validStates.join(", ")}`, {
             message_thread_id: topicId
-        })
+        });
         return;
     }
     try {
-        await userClient.updateTopicSheet(topicId, newState);
-        await ctx.reply(`Topic state updated to ${newState}`, {
+
+        const result = await updateTopicState(chatId!, topicId, stateText as TopicState);
+        if (typeof result === 'string') {
+            await ctx.reply(result, {
+                message_thread_id: topicId
+            });
+            return;
+        }
+
+        await ctx.reply(`Topic state updated to ${stateText}`, {
             message_thread_id: topicId
-        });
+        })
     } catch (error) {
         console.error("Error updating the topic State:", error);
         await ctx.reply("Failed to update topic State. Please try again.", {
@@ -184,7 +194,79 @@ bot.command("state", async (ctx) => {
 });
 
 
+bot.command("archive", async (ctx) => {
+    const source = ctx.message?.message_thread_id;
+    const sourceGroupId = ctx.chat?.id;
+    const archive_group_id = -1002388831719;
 
+    if (!sourceGroupId) {
+        await ctx.reply("Please use this command inside a topic.");
+        return;
+    }
+    
+    try {
+        const sourceTopic = await userClient.invoke(new Api.channels.GetForumTopics({
+            channel: sourceGroupId,
+            offsetTopic: 0,
+            limit: 100
+        }));
 
+        const originalTopic= sourceTopic.topics.find(topic =>
+            'id' in topic && topic.id === source
+            );
+
+        if (!originalTopic || originalTopic instanceof Api.ForumTopicDeleted) {
+            throw new Error("topic not found");
+        }
+        let originalTopicTitle = originalTopic.title || "";
+        originalTopicTitle = originalTopicTitle
+            .replace(/^\[CLOSED\]\s*/, '')
+            .replace(/^\[PENDING REFUND\]\s*/, '')
+            .replace(/^\[PENDING FIX\]\s*/, '')
+            .trim();
+
+        const result = await userClient.invoke(new Api.messages.GetReplies({
+            peer: sourceGroupId,
+            msgId: source,
+            offsetId: 0,
+            addOffset: 0,
+            limit: 100,
+            maxId: 0,
+            minId: 0,
+            hash: bigInt(0),
+        }));
+
+        if (!('messages' in result)) {
+            await ctx.reply("No messages found in this topic");
+            return;
+        }
+        const messages = result.messages;
+
+        if (!messages.length) {
+            await ctx.reply("No messages found in this topic");
+            return;
+        }
+        const newTopic = await ctx.api.createForumTopic(
+            archive_group_id,
+            `${originalTopicTitle} (archived)`,
+            { icon_color: 7322096}
+        );
+
+        for (const msg of messages.reverse()){
+            if ('message' in msg && msg.message) {
+                await ctx.api.sendMessage(archive_group_id, msg.message, {
+                    message_thread_id: newTopic.message_thread_id
+                });
+            }
+            await new Promise (resolve => setTimeout(resolve, 1000));
+        }
+        await ctx.reply(`Topic archived successfully. New topic ID: ${newTopic.message_thread_id}`, {
+            message_thread_id: source
+        });
+    } catch (error) {
+        console.error("Error archiving", error);
+        await ctx.reply("Failed to archive")
+    }
+});
 
 bot.start();

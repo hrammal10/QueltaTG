@@ -17,7 +17,7 @@ import { Api } from 'telegram';
 dotenv.config();
 
 const bigInt = require('big-integer');
-const bot = new Bot(process.env.BOT_TOKEN!);
+export const bot = new Bot(process.env.BOT_TOKEN!);
 
 bot.catch((err) => {
     const { message, ctx } = err;
@@ -93,9 +93,24 @@ bot.command("create", async (ctx) => {
         try {
             const createdTopic = await ctx.api.createForumTopic(
                 ctx.chat.id, 
-                topicName, {
-                icon_color: 7322096,
-            });
+                topicName, 
+                {
+                    icon_color: 7322096 
+                }
+            );
+
+            if (createdTopic) {
+                try {
+                    await userClient.invoke(new Api.channels.EditForumTopic({
+                        channel: ctx.chat.id,
+                        topicId: createdTopic.message_thread_id,
+                        title: topicName,
+                        iconEmojiId: bigInt('5210952531676504517')
+                    }));
+                } catch (error) {
+                    console.error('Error setting topic icon:', error);
+                }
+            }
 
             const topicId = createdTopic.message_thread_id;
 
@@ -165,7 +180,7 @@ bot.command("state", async (ctx) => {
         });
         return;
     }
-    const validStates = ['OPEN', 'CLOSE', 'PENDING REFUND', 'PENDING FIX'] as const;
+    const validStates = ['OPEN', 'CLOSED', 'PENDING REFUND', 'PENDING FIX'] as const;
     if (!validStates.includes(stateText as any)) {
         await ctx.reply(`Invalid state. Please use one of: ${validStates.join(", ")}`, {
             message_thread_id: topicId
@@ -268,5 +283,6 @@ bot.command("archive", async (ctx) => {
         await ctx.reply("Failed to archive")
     }
 });
+
 
 bot.start();

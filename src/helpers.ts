@@ -25,7 +25,7 @@ export async function updateTopicState(
         let topicName = topic.title || "";
         let currentState: TopicState;
         if (topicName.startsWith('[CLOSED]')) {
-            currentState = 'CLOSE';
+            currentState = 'CLOSED';
         } else if (topicName.startsWith('[PENDING REFUND]')) {
             currentState = 'PENDING REFUND';
         } else if (topicName.startsWith('[PENDING FIX]')) {
@@ -40,12 +40,13 @@ export async function updateTopicState(
             ? topicName
             : `[${newState}] ${topicName}`;
 
+        
         try {
             await userClient.invoke(new Api.channels.EditForumTopic({
                 channel: chatId,
                 topicId: topicId,
                 title: newTopicName,
-                iconEmojiId: newState === 'CLOSE' ? bigInt(4924931972033151903) : undefined  
+                iconEmojiId: newState == 'CLOSED' ? bigInt('5206607081334906820') : undefined
             }));
 
         } catch (e: any) {
@@ -65,3 +66,4 @@ export async function updateTopicState(
 export function cleanTopicName(name: string): string {
     return name.replace(/^\[(OPEN|CLOSED|PENDING)\]\s*/i, '');
 }
+

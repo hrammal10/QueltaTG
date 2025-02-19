@@ -2,7 +2,7 @@ export interface TopicInfo {
     name: string;
     id: number;
     creator: string;
-    state?: 'OPEN' | 'CLOSE' | 'PENDING REFUND' | 'PENDING FIX';
+    state?: 'OPEN' | 'CLOSED' | 'PENDING REFUND' | 'PENDING FIX';
 }
 
 export interface TopicError {
@@ -11,7 +11,7 @@ export interface TopicError {
     topicId?: number;
 }
 
-export type TopicState = 'OPEN' | 'CLOSE' | 'PENDING REFUND' | 'PENDING FIX';
+export type TopicState = 'OPEN' | 'CLOSED' | 'PENDING REFUND' | 'PENDING FIX';
 
 
 

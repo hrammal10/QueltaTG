@@ -4,3 +4,4 @@ dist/
 *.swp
 *.swo
 *.swn
+generateSession.ts

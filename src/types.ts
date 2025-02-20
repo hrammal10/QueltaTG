@@ -13,5 +13,11 @@ export interface TopicError {
 
 export type TopicState = 'OPEN' | 'CLOSED' | 'PENDING REFUND' | 'PENDING FIX';
 
+export interface WhitelistConfig {
+    dmUsers: number[];
+    archiveUsers: number[];
+}
+
+
 
 

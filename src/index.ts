@@ -1,17 +1,20 @@
-import { 
-    Bot, 
-    Context, 
-    InlineKeyboard 
+import {
+    Bot,
+    Context,
+    InlineKeyboard
 } from "grammy";
 import dotenv from 'dotenv';
 import {
     updateTopicState,
-    cleanTopicName
+    cleanTopicName,
+    checkDMPermissions,
+    isAllowedArchive
 } from './helpers';
-import { TopicInfo, 
+import {
+    TopicInfo,
     TopicState,
-    TopicError 
-} from './types'; 
+    TopicError
+} from './types';
 import { userClient } from './userClient';
 import { Api } from 'telegram';
 dotenv.config();
@@ -29,6 +32,8 @@ bot.catch((err) => {
     console.error("Bot error:", err);
 });
 
+bot.use(checkDMPermissions);
+
 async function executeTopicOperation(
     ctx: Context,
     operation: 'create' | 'close' | 'hold' | 'open' | 'archive',
@@ -41,7 +46,7 @@ async function executeTopicOperation(
         console.error('Chat ID is undefined');
         throw new Error('Cannot execute operation: Chat ID is undefined');
     }
-    
+
     try {
         await handler();
     } catch (error) {
@@ -49,7 +54,7 @@ async function executeTopicOperation(
             try {
                 if (operation === 'create') {
                     await ctx.api.deleteForumTopic(chatId, topicId);
-                } 
+                }
             } catch (cleanupError) {
                 console.error(`Failed to cleanup after ${operation} error:`, cleanupError);
             }
@@ -65,20 +70,29 @@ const deleteKeyboard = new InlineKeyboard()
 
 bot.command("start", async (ctx) => {
     await ctx.reply(`
-        This is Quelta, the best moderator bot soon to be (literally). Main functionalities for now are:
-        /start
-        /create (Which creates a topic)
-        /delete 
-        /state (One of Open, close, pending refund, or pending fix)
-        /archive (Secret command for Admin and Dev)`)
-})
+        This is Quelta, a mod bot. Use /help to explore some of its functionalities.`, {
+            message_thread_id: ctx.message?.message_thread_id
+        })
+});
+
+bot.command("help", async (ctx) => {
+    await ctx.reply(
+    `Main functionalities for now are:
+/start
+/help
+/create (Which creates a topic)
+/delete 
+/state (One of Open, close, pending refund, or pending fix)`, {
+        message_thread_id: ctx.message?.message_thread_id
+     })
+});
 
 bot.command("create", async (ctx) => {
     const createText = ctx.message?.text;
     if (createText) {
         const commandParts = createText.split(' ').slice(1).join(' ');
         const topicInfo = commandParts.split(' - ');
-        
+
         if (topicInfo.length < 2) {
             await ctx.reply(`Topic name or creator's name is not found. Provide it in the following format: 
             \n/create <topic name> - <creator's name>`, {
@@ -92,10 +106,10 @@ bot.command("create", async (ctx) => {
 
         try {
             const createdTopic = await ctx.api.createForumTopic(
-                ctx.chat.id, 
-                topicName, 
+                ctx.chat.id,
+                topicName,
                 {
-                    icon_color: 7322096 
+                    icon_color: 7322096
                 }
             );
 
@@ -114,14 +128,16 @@ bot.command("create", async (ctx) => {
 
             const topicId = createdTopic.message_thread_id;
 
-            await executeTopicOperation(ctx, 'create', async () => {    
+            await executeTopicOperation(ctx, 'create', async () => {
             });
 
+            await ctx.deleteMessage();
+            
             await ctx.api.sendMessage(
                 ctx.chat.id,
                 `This topic was created by ${creatorName}`,
                 { message_thread_id: topicId }
-            ); 
+            );
 
         } catch (error) {
             await ctx.reply("Encountered an error while creating topic.", {
@@ -147,8 +163,8 @@ bot.on("callback_query:data", async (ctx) => {
         const chatId = ctx.chat?.id;
         const topicId = ctx.callbackQuery.message?.message_thread_id;
         if (chatId && topicId) {
-                try {
-                    await ctx.api.deleteForumTopic(chatId, topicId);
+            try {
+                await ctx.api.deleteForumTopic(chatId, topicId);
                 await ctx.answerCallbackQuery({
                     text: "Topic deleted.",
                     show_alert: true
@@ -174,14 +190,24 @@ bot.command("state", async (ctx) => {
     const chatId = ctx.chat?.id;
     const stateText = ctx.message?.text.slice(7).trim().toUpperCase();
 
-    if (!stateText || !topicId) {
-        await ctx.reply("Please provide a state and use this command within a topic.", {
+    if (!stateText) {
+        await ctx.reply(
+        `Please indicate the state you want the topic in. (e.g. closed, open, etc..)
+    In the format: /state ...`, {
             message_thread_id: topicId
         });
         return;
     }
+
+    if (!topicId) {
+        await ctx.reply("Please use this command in  a topic.", {
+            message_thread_id: chatId
+        });
+        return;
+    }
+
     const validStates = ['OPEN', 'CLOSED', 'PENDING REFUND', 'PENDING FIX'] as const;
-    if (!validStates.includes(stateText as any)) {
+    if (!validStates.includes(stateText as TopicState)) {
         await ctx.reply(`Invalid state. Please use one of: ${validStates.join(", ")}`, {
             message_thread_id: topicId
         });
@@ -214,11 +240,14 @@ bot.command("archive", async (ctx) => {
     const sourceGroupId = ctx.chat?.id;
     const archive_group_id = -1002388831719;
 
-    if (!sourceGroupId) {
-        await ctx.reply("Please use this command inside a topic.");
-        return;
+    if (!isAllowedArchive(ctx.from?.id || 0)) {
+        return ctx.reply("You are not authorized to use this command")
     }
-    
+
+    if (!sourceGroupId) {
+        return ctx.reply("Please use this command inside a topic.");
+    }
+
     try {
         const sourceTopic = await userClient.invoke(new Api.channels.GetForumTopics({
             channel: sourceGroupId,
@@ -226,9 +255,9 @@ bot.command("archive", async (ctx) => {
             limit: 100
         }));
 
-        const originalTopic= sourceTopic.topics.find(topic =>
+        const originalTopic = sourceTopic.topics.find(topic =>
             'id' in topic && topic.id === source
-            );
+        );
 
         if (!originalTopic || originalTopic instanceof Api.ForumTopicDeleted) {
             throw new Error("topic not found");
@@ -264,23 +293,23 @@ bot.command("archive", async (ctx) => {
         const newTopic = await ctx.api.createForumTopic(
             archive_group_id,
             `${originalTopicTitle} (archived)`,
-            { icon_color: 7322096}
+            { icon_color: 7322096 }
         );
 
-        for (const msg of messages.reverse()){
+        for (const msg of messages.reverse()) {
             if ('message' in msg && msg.message) {
                 await ctx.api.sendMessage(archive_group_id, msg.message, {
                     message_thread_id: newTopic.message_thread_id
                 });
             }
-            await new Promise (resolve => setTimeout(resolve, 1000));
+            await new Promise(resolve => setTimeout(resolve, 1000));
         }
-        await ctx.reply(`Topic archived successfully. New topic ID: ${newTopic.message_thread_id}`, {
+        return ctx.reply(`Topic archived successfully. New topic ID: ${newTopic.message_thread_id}`, {
             message_thread_id: source
         });
     } catch (error) {
         console.error("Error archiving", error);
-        await ctx.reply("Failed to archive")
+        return ctx.reply("Failed to archive");
     }
 });
 

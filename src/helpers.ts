@@ -1,8 +1,33 @@
 import { Api } from 'telegram';
 import { Context } from 'grammy';
 import { userClient } from './userClient';
-import { TopicInfo, TopicState, TopicError } from './types'; 
+import { TopicInfo, TopicState, TopicError, WhitelistConfig } from './types'; 
 import bigInt from 'big-integer'; 
+
+export const whitelist: WhitelistConfig = {
+    dmUsers: [
+        6048393057
+    ],
+    archiveUsers: [
+        6048393057,
+        6086945557,
+        2030877892,
+        88891037
+    ]
+}
+
+export const getIconForState = (state: string) => {
+    switch (state) {
+        case 'CLOSED':
+            return bigInt('5206607081334906820');
+        case 'PENDING REFUND':
+        case 'PENDING FIX':
+        case 'OPEN':
+            return bigInt('5210952531676504517');
+        default:
+            return undefined;
+    }
+};
 
 export async function updateTopicState(
     chatId: number, 
@@ -46,7 +71,7 @@ export async function updateTopicState(
                 channel: chatId,
                 topicId: topicId,
                 title: newTopicName,
-                iconEmojiId: newState == 'CLOSED' ? bigInt('5206607081334906820') : undefined
+                iconEmojiId: getIconForState(newState)
             }));
 
         } catch (e: any) {
@@ -66,4 +91,20 @@ export async function updateTopicState(
 export function cleanTopicName(name: string): string {
     return name.replace(/^\[(OPEN|CLOSED|PENDING)\]\s*/i, '');
 }
+
+export const isAllowedDM = (userId: number): boolean => 
+    whitelist.dmUsers.includes(userId);
+
+export const isAllowedArchive = (userId: number): boolean =>
+    whitelist.archiveUsers.includes(userId);
+
+export const checkDMPermissions = async (ctx: Context, next: () => Promise<void>) => {
+    if (ctx.chat?.type === 'private') {
+        if (isAllowedDM(ctx.from?.id || 0)) {
+            return next();
+        }
+        return ctx.reply('Unauthorized access in DM.');
+    } 
+    return next();
+};
 

@@ -70,80 +70,82 @@ const deleteKeyboard = new InlineKeyboard()
 
 bot.command("start", async (ctx) => {
     await ctx.reply(`
-        This is Quelta, a mod bot. Use /help to explore some of its functionalities.`, {
-            message_thread_id: ctx.message?.message_thread_id
-        })
+        This is Quelta, a mod bot. Use /help to check out some of its functionalities.`, {
+        message_thread_id: ctx.message?.message_thread_id
+    })
 });
 
 bot.command("help", async (ctx) => {
     await ctx.reply(
-    `Main functionalities for now are:
+        `Main functionalities for now are:
 /start
 /help
 /create (Which creates a topic)
 /delete 
 /state (One of Open, close, pending refund, or pending fix)`, {
         message_thread_id: ctx.message?.message_thread_id
-     })
+    })
 });
 
 bot.command("create", async (ctx) => {
+    if (ctx.message?.message_thread_id !== 1) {
+        return ctx.reply("Please use this command in the General chat.", {
+            message_thread_id: ctx.message?.message_thread_id
+        });
+    }
+
     const createText = ctx.message?.text;
-    if (createText) {
-        const commandParts = createText.split(' ').slice(1).join(' ');
-        const topicInfo = commandParts.split(' - ');
-
-        if (topicInfo.length < 2) {
-            await ctx.reply(`Topic name or creator's name is not found. Provide it in the following format: 
+    if (!createText) {
+        return ctx.reply("Make sure you are providing the topic name and creator name.", {
+            message_thread_id: ctx.message?.message_thread_id
+        })
+    }
+    const commandParts = createText.split(' ').slice(1);
+    if (commandParts.length < 2) {
+        return ctx.reply(`Topic name or creator's name is not found. Provide it in the following format: 
             \n/create <topic name> - <creator's name>`, {
-                message_thread_id: ctx.message?.message_thread_id
-            });
-            return;
-        }
+            message_thread_id: ctx.message?.message_thread_id
+        });
+    }
 
-        const creatorName = topicInfo[topicInfo.length - 1].trim();
-        const topicName = topicInfo.slice(0, topicInfo.length - 1).join(' - ').trim();
+    const creatorName = commandParts[commandParts.length - 1];
+    const topicName = commandParts.slice(0, - 1).join(' ');
 
-        try {
-            const createdTopic = await ctx.api.createForumTopic(
-                ctx.chat.id,
-                topicName,
-                {
-                    icon_color: 7322096
-                }
-            );
-
-            if (createdTopic) {
-                try {
-                    await userClient.invoke(new Api.channels.EditForumTopic({
-                        channel: ctx.chat.id,
-                        topicId: createdTopic.message_thread_id,
-                        title: topicName,
-                        iconEmojiId: bigInt('5210952531676504517')
-                    }));
-                } catch (error) {
-                    console.error('Error setting topic icon:', error);
-                }
+    try {
+        const createdTopic = await ctx.api.createForumTopic(
+            ctx.chat.id,
+            topicName,
+            {
+                icon_color: 7322096
             }
+        );
 
-            const topicId = createdTopic.message_thread_id;
-
-            await executeTopicOperation(ctx, 'create', async () => {
-            });
-
-            await ctx.deleteMessage();
-            
-            await ctx.api.sendMessage(
-                ctx.chat.id,
-                `This topic was created by ${creatorName}`,
-                { message_thread_id: topicId }
-            );
-
+        const topicId = createdTopic.message_thread_id;
+        try {
+            await userClient.invoke(new Api.channels.EditForumTopic({
+                channel: ctx.chat.id,
+                topicId: createdTopic.message_thread_id,
+                title: topicName,
+                iconEmojiId: bigInt('5210952531676504517')
+            }));
         } catch (error) {
-            await ctx.reply("Encountered an error while creating topic.", {
-                message_thread_id: ctx.message?.message_thread_id
-            });
+            console.error('Error setting topic icon:', error);
         }
+
+        await executeTopicOperation(ctx, 'create', async () => {});
+        await ctx.deleteMessage();
+
+        return ctx.api.sendMessage(
+            ctx.chat.id,
+            `This topic was created by ${creatorName}`,
+            { message_thread_id: topicId }
+        );
+
+    } catch (error) {
+        console.error('Error creating topic', error);
+        return ctx.reply("Encountered an error while creating topic.", {
+            message_thread_id: ctx.message?.message_thread_id
+        });
     }
 });
 
@@ -192,7 +194,7 @@ bot.command("state", async (ctx) => {
 
     if (!stateText) {
         await ctx.reply(
-        `Please indicate the state you want the topic in. (e.g. closed, open, etc..)
+            `Please indicate the state you want the topic in. (e.g. closed, open, etc..)
     In the format: /state ...`, {
             message_thread_id: topicId
         });
@@ -304,7 +306,7 @@ bot.command("archive", async (ctx) => {
             }
             await new Promise(resolve => setTimeout(resolve, 1000));
         }
-        return ctx.reply(`Topic archived successfully. New topic ID: ${newTopic.message_thread_id}`, {
+        return ctx.reply(`Topic archived successfully.`, {
             message_thread_id: source
         });
     } catch (error) {

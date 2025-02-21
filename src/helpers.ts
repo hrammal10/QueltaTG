@@ -76,7 +76,7 @@ export async function updateTopicState(
 
         } catch (e: any) {
             if (e.errorMessage === 'TOPIC_NOT_MODIFIED') {
-                return `Topic already has that state: ${newState}`;
+                return `Topic already has ${newState} state.`;
             }
             throw e;
         }

@@ -34,36 +34,6 @@ bot.catch((err) => {
 
 bot.use(checkDMPermissions);
 
-async function executeTopicOperation(
-    ctx: Context,
-    operation: 'create' | 'close' | 'hold' | 'open' | 'archive',
-    handler: () => Promise<void>
-): Promise<void> {
-    const topicId = operation === 'create' ? undefined : ctx.message?.message_thread_id;
-    const chatId = ctx.chat?.id;
-
-    if (!chatId) {
-        console.error('Chat ID is undefined');
-        throw new Error('Cannot execute operation: Chat ID is undefined');
-    }
-
-    try {
-        await handler();
-    } catch (error) {
-        if (topicId) {
-            try {
-                if (operation === 'create') {
-                    await ctx.api.deleteForumTopic(chatId, topicId);
-                }
-            } catch (cleanupError) {
-                console.error(`Failed to cleanup after ${operation} error:`, cleanupError);
-            }
-        }
-
-        console.error(`Error during ${operation} operation:`, error);
-        throw error;
-    }
-}
 const deleteKeyboard = new InlineKeyboard()
     .text("Yes", "confirmDelete")
     .text("No", "disregardDelete");
@@ -131,8 +101,6 @@ bot.command("create", async (ctx) => {
         } catch (error) {
             console.error('Error setting topic icon:', error);
         }
-
-        await executeTopicOperation(ctx, 'create', async () => {});
         await ctx.deleteMessage();
 
         return ctx.api.sendMessage(
@@ -296,7 +264,7 @@ bot.command("archive", async (ctx) => {
             archive_group_id,
             `${originalTopicTitle} (archived)`,
             { icon_color: 7322096 }
-        );
+        ); 
 
         for (const msg of messages.reverse()) {
             if ('message' in msg && msg.message) {

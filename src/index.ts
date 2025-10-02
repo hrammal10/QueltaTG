@@ -17,7 +17,9 @@ import {
 } from './types';
 import { userClient } from './userClient';
 import { Api } from 'telegram';
+import logger from './logger';
 dotenv.config();
+
 
 const bigInt = require('big-integer');
 export const bot = new Bot(process.env.BOT_TOKEN!);
@@ -29,7 +31,7 @@ bot.catch((err) => {
         console.log("Attempted to interact with deleted topic, ignoring.");
         return;
     }
-    console.error("Bot error:", err);
+    logger.error("Bot error:", err);
 });
 
 bot.use(checkDMPermissions);
@@ -37,6 +39,66 @@ bot.use(checkDMPermissions);
 const deleteKeyboard = new InlineKeyboard()
     .text("Yes", "confirmDelete")
     .text("No", "disregardDelete");
+
+async function executeTopicOperation(
+    ctx: Context,
+    operation: 'create' | 'close' | 'hold' | 'open' | 'archive',
+    handler: () => Promise<void>
+): Promise<void> {
+    const topicId = operation === 'create' ? undefined : ctx.message?.message_thread_id;
+    const chatId = ctx.chat?.id;
+
+    if (!chatId) {
+        logger.error('Chat ID is undefined');
+        throw new Error('Cannot execute operation: Chat ID is undefined');
+    }
+
+    try {
+        await handler();
+    } catch (error) {
+        if (topicId) {
+            try {
+                if (operation === 'create') {
+                    await ctx.api.deleteForumTopic(chatId, topicId);
+                }
+            } catch (cleanupError) {
+                logger.error(`Failed to cleanup after ${operation} error:`, cleanupError);
+            }
+        }
+
+        logger.error(`Error during ${operation} operation:`, error);
+        throw error;
+    }
+}
+
+bot.on("callback_query:data", async (ctx) => {
+    const data = ctx.callbackQuery.data;
+
+    if (data == "confirmDelete") {
+        const chatId = ctx.chat?.id;
+        const topicId = ctx.callbackQuery.message?.message_thread_id;
+        if (chatId && topicId) {
+            try {
+                await ctx.api.deleteForumTopic(chatId, topicId);
+                await ctx.answerCallbackQuery({
+                    text: "Topic deleted.",
+                    show_alert: true
+                });
+            } catch (error) {
+                logger.error("Error deleting topic with id: ${topicId}", error);
+                await ctx.answerCallbackQuery({
+                    text: "Couldn't delete topic. Contact Admin.",
+                    show_alert: true
+                });
+            }
+        }
+    } else if (data == "disregardDelete") {
+        await ctx.answerCallbackQuery({
+            text: "Topic deletion cancelled.",
+            show_alert: true
+        });
+    }
+});
 
 bot.command("start", async (ctx) => {
     await ctx.reply(`
@@ -58,22 +120,23 @@ bot.command("help", async (ctx) => {
 });
 
 bot.command("create", async (ctx) => {
-    if (ctx.message?.message_thread_id !== 1) {
-        return ctx.reply("Please use this command in the General chat.", {
-            message_thread_id: ctx.message?.message_thread_id
-        });
-    }
+    const createText = ctx.message?.text?.split('\n')[0];
 
-    const createText = ctx.message?.text;
     if (!createText) {
         return ctx.reply("Make sure you are providing the topic name and creator name.", {
             message_thread_id: ctx.message?.message_thread_id
         })
     }
+    if (!createText?.startsWith('/create')) {
+        return ctx.reply("Invalid command format", {
+            message_thread_id: ctx.message?.message_thread_id
+        })
+    }
+
     const commandParts = createText.split(' ').slice(1);
     if (commandParts.length < 2) {
         return ctx.reply(`Topic name or creator's name is not found. Provide it in the following format: 
-            \n/create <topic name> - <creator's name>`, {
+            \n/create <topic name> <creator's name>`, {
             message_thread_id: ctx.message?.message_thread_id
         });
     }
@@ -99,8 +162,9 @@ bot.command("create", async (ctx) => {
                 iconEmojiId: bigInt('5210952531676504517')
             }));
         } catch (error) {
-            console.error('Error setting topic icon:', error);
+            logger.error('Error setting topic icon:', error);
         }
+        await executeTopicOperation(ctx, 'create', async () => { });
         await ctx.deleteMessage();
 
         return ctx.api.sendMessage(
@@ -110,7 +174,7 @@ bot.command("create", async (ctx) => {
         );
 
     } catch (error) {
-        console.error('Error creating topic', error);
+        logger.error('Error creating topic', error);
         return ctx.reply("Encountered an error while creating topic.", {
             message_thread_id: ctx.message?.message_thread_id
         });
@@ -119,55 +183,30 @@ bot.command("create", async (ctx) => {
 
 bot.command("delete", async (ctx) => {
     const threadId = ctx.message?.message_thread_id;
-    await ctx.reply(`Are you sure you want to delete this topic?
+
+    if (!threadId || threadId === 1) {
+        return ctx.reply("This command cannot be used in the General chat.", {
+            message_thread_id: ctx.message?.message_thread_id
+        });
+    }
+
+    const commandText = ctx.message?.text?.split('\n')[0];
+    if (!commandText?.startsWith('/delete')) {
+        return ctx.reply("Invalid command format.", {
+            message_thread_id: threadId
+        });
+    }
+    return ctx.reply(`Are you sure you want to delete this topic?
     \n All chats will be deleted.`, {
         reply_markup: deleteKeyboard,
         message_thread_id: threadId
     });
 });
 
-bot.on("callback_query:data", async (ctx) => {
-    const data = ctx.callbackQuery.data;
-
-    if (data == "confirmDelete") {
-        const chatId = ctx.chat?.id;
-        const topicId = ctx.callbackQuery.message?.message_thread_id;
-        if (chatId && topicId) {
-            try {
-                await ctx.api.deleteForumTopic(chatId, topicId);
-                await ctx.answerCallbackQuery({
-                    text: "Topic deleted.",
-                    show_alert: true
-                });
-            } catch (error) {
-                console.error("Error deleting topic with id: ${topicId}", error);
-                await ctx.answerCallbackQuery({
-                    text: "Couldn't delete topic. Contact Admin.",
-                    show_alert: true
-                });
-            }
-        }
-    } else if (data == "disregardDelete") {
-        await ctx.answerCallbackQuery({
-            text: "Topic deletion cancelled.",
-            show_alert: true
-        });
-    }
-});
 
 bot.command("state", async (ctx) => {
     const topicId = ctx.message?.message_thread_id;
     const chatId = ctx.chat?.id;
-    const stateText = ctx.message?.text.slice(7).trim().toUpperCase();
-
-    if (!stateText) {
-        await ctx.reply(
-            `Please indicate the state you want the topic in. (e.g. closed, open, etc..)
-    In the format: /state ...`, {
-            message_thread_id: topicId
-        });
-        return;
-    }
 
     if (!topicId) {
         await ctx.reply("Please use this command in  a topic.", {
@@ -176,29 +215,44 @@ bot.command("state", async (ctx) => {
         return;
     }
 
-    const validStates = ['OPEN', 'CLOSED', 'PENDING REFUND', 'PENDING FIX'] as const;
-    if (!validStates.includes(stateText as TopicState)) {
-        await ctx.reply(`Invalid state. Please use one of: ${validStates.join(", ")}`, {
+    if (topicId === 1) {
+        return ctx.reply("This command cannot be used in the General chat.", {
+            message_thread_id: ctx.message?.message_thread_id
+        })
+    }
+
+    const commandText = ctx.message?.text?.split('\n')[0];
+    const stateText = commandText?.slice(7).trim().toUpperCase();
+
+    if (!stateText) {
+        return ctx.reply(
+            `Please indicate the state you want the topic in. (e.g. closed, open, etc..)
+    In the format: /state ...`, {
             message_thread_id: topicId
         });
-        return;
+    }
+
+    const validStates = ['OPEN', 'CLOSED', 'PENDING REFUND', 'PENDING FIX'] as const;
+    if (!validStates.includes(stateText as TopicState)) {
+        return ctx.reply(`Invalid state. Please use one of: ${validStates.join(", ")}`, {
+            message_thread_id: topicId
+        });
     }
     try {
 
         const result = await updateTopicState(chatId!, topicId, stateText as TopicState);
         if (typeof result === 'string') {
-            await ctx.reply(result, {
+            return ctx.reply(result, {
                 message_thread_id: topicId
             });
-            return;
         }
 
-        await ctx.reply(`Topic state updated to ${stateText}`, {
+        return ctx.reply(`Topic state updated to ${stateText}`, {
             message_thread_id: topicId
         })
     } catch (error) {
-        console.error("Error updating the topic State:", error);
-        await ctx.reply("Failed to update topic State. Please try again.", {
+        logger.error("Error updating the topic State:", error);
+        return ctx.reply("Failed to update topic State. Please try again.", {
             message_thread_id: topicId
         });
     }
@@ -209,6 +263,18 @@ bot.command("archive", async (ctx) => {
     const source = ctx.message?.message_thread_id;
     const sourceGroupId = ctx.chat?.id;
     const archive_group_id = -1002388831719;
+
+    if (source === 1) {
+        return ctx.reply("This commadn cannot be used in the General chat.", {
+            message_thread_id: ctx.message?.message_thread_id
+        })
+    }
+
+    if (!source) {
+        return ctx.reply("Please use this command in a topic.", {
+            message_thread_id: sourceGroupId
+        });
+    }
 
     if (!isAllowedArchive(ctx.from?.id || 0)) {
         return ctx.reply("You are not authorized to use this command")
@@ -264,7 +330,7 @@ bot.command("archive", async (ctx) => {
             archive_group_id,
             `${originalTopicTitle} (archived)`,
             { icon_color: 7322096 }
-        ); 
+        );
 
         for (const msg of messages.reverse()) {
             if ('message' in msg && msg.message) {
@@ -278,7 +344,7 @@ bot.command("archive", async (ctx) => {
             message_thread_id: source
         });
     } catch (error) {
-        console.error("Error archiving", error);
+        logger.error("Error archiving", error);
         return ctx.reply("Failed to archive");
     }
 });

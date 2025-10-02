@@ -6,13 +6,15 @@ import bigInt from 'big-integer';
 
 export const whitelist: WhitelistConfig = {
     dmUsers: [
-        6048393057
+        6048393057,
+        1631248807
     ],
     archiveUsers: [
         6048393057,
         6086945557,
         2030877892,
-        88891037
+        88891037,
+        1631248807
     ]
 }
 

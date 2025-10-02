@@ -1,4 +1,3 @@
-// src/generateSession.ts
 import { TelegramClient } from "telegram";
 import { StringSession } from "telegram/sessions";
 // @ts-ignore
@@ -31,7 +30,7 @@ if (!API_ID || !API_HASH) {
         new StringSession(""),  // Empty string = new session
         parseInt(API_ID),
         API_HASH,
-        { connectionRetries: 5 }
+        { connectionRetries: 2 }
     );
 
     await client.start({

@@ -1,0 +1,85 @@
+2025-07-15T10:34:41: (node:18120) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+2025-07-15T10:34:42: Failed to connect user client: Error: User not authorized
+    at /Users/hassanrammal/hassanWorkspace/Maestro/Quelta/src/userClient.ts:29:19
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+2025-07-15T10:34:42: (node:18138) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+2025-07-15T10:34:43: Failed to connect user client: Error: User not authorized
+    at /Users/hassanrammal/hassanWorkspace/Maestro/Quelta/src/userClient.ts:29:19
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+2025-07-15T10:34:43: (node:18143) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+2025-07-15T10:34:43: Failed to connect user client: Error: User not authorized
+    at /Users/hassanrammal/hassanWorkspace/Maestro/Quelta/src/userClient.ts:29:19
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+2025-07-15T10:34:44: (node:18145) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+2025-07-15T10:34:44: Failed to connect user client: Error: User not authorized
+    at /Users/hassanrammal/hassanWorkspace/Maestro/Quelta/src/userClient.ts:29:19
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+2025-07-15T10:34:44: (node:18148) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+2025-07-15T10:34:45: Failed to connect user client: Error: User not authorized
+    at /Users/hassanrammal/hassanWorkspace/Maestro/Quelta/src/userClient.ts:29:19
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+2025-07-15T10:34:45: (node:18151) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+2025-07-15T10:34:45: Failed to connect user client: Error: User not authorized
+    at /Users/hassanrammal/hassanWorkspace/Maestro/Quelta/src/userClient.ts:29:19
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+2025-07-15T10:34:46: (node:18152) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+2025-07-15T10:34:46: Failed to connect user client: Error: User not authorized
+    at /Users/hassanrammal/hassanWorkspace/Maestro/Quelta/src/userClient.ts:29:19
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+2025-07-15T10:34:46: (node:18153) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+2025-07-15T10:34:47: Failed to connect user client: Error: User not authorized
+    at /Users/hassanrammal/hassanWorkspace/Maestro/Quelta/src/userClient.ts:29:19
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+2025-07-15T10:34:47: (node:18156) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+2025-07-15T10:34:47: Failed to connect user client: Error: User not authorized
+    at /Users/hassanrammal/hassanWorkspace/Maestro/Quelta/src/userClient.ts:29:19
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+2025-07-15T10:34:48: (node:18157) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+2025-07-15T10:34:48: Failed to connect user client: Error: User not authorized
+    at /Users/hassanrammal/hassanWorkspace/Maestro/Quelta/src/userClient.ts:29:19
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+2025-07-15T10:34:48: (node:18158) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+2025-07-15T10:34:49: Failed to connect user client: Error: User not authorized
+    at /Users/hassanrammal/hassanWorkspace/Maestro/Quelta/src/userClient.ts:29:19
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+2025-07-15T10:34:49: (node:18161) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+2025-07-15T10:34:50: Failed to connect user client: Error: User not authorized
+    at /Users/hassanrammal/hassanWorkspace/Maestro/Quelta/src/userClient.ts:29:19
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+2025-07-15T10:34:50: (node:18162) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+2025-07-15T10:34:50: Failed to connect user client: Error: User not authorized
+    at /Users/hassanrammal/hassanWorkspace/Maestro/Quelta/src/userClient.ts:29:19
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+2025-07-15T10:34:50: (node:18164) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+2025-07-15T10:34:51: Failed to connect user client: Error: User not authorized
+    at /Users/hassanrammal/hassanWorkspace/Maestro/Quelta/src/userClient.ts:29:19
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+2025-07-15T10:34:51: (node:18165) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+2025-07-15T10:34:51: Failed to connect user client: Error: User not authorized
+    at /Users/hassanrammal/hassanWorkspace/Maestro/Quelta/src/userClient.ts:29:19
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+2025-07-15T10:34:52: (node:18166) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+2025-07-15T10:34:52: Failed to connect user client: Error: User not authorized
+    at /Users/hassanrammal/hassanWorkspace/Maestro/Quelta/src/userClient.ts:29:19
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+2025-07-15T10:34:52: (node:18167) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+2025-07-15T10:34:53: Failed to connect user client: Error: User not authorized
+    at /Users/hassanrammal/hassanWorkspace/Maestro/Quelta/src/userClient.ts:29:19
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
